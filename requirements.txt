@@ -1,0 +1,7 @@
+gradio==4.44.1
+albumentations
+toml
+convigure
+torch
+torchmetrics
+torchvision

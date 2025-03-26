@@ -1,0 +1,45 @@
+{
+  "datasets": {
+    "train": {
+      "dir": "./input/image_data/train/*[jpg,tif]",
+      "csv": "./input/image_data/train.csv",
+      "num_folds": 10,
+      "val_fold": 1
+    },
+    "test": {
+      "dir": "./input/image_data/test/*[jpg,tif]",
+      "csv": "./input/image_data/test.csv"
+      
+    },
+    "real": {
+      "dir": "./input/image_data/real/*[jpg,tif]",
+      "csv": "./input/image_data/real_new.csv"
+    },
+    "label_encoder": "./input/label_encoder-test-base.npy"
+  },
+  "model": {
+    "id": "N16",
+    "type": "convnext-base",
+    "dir": "./models/",
+    "size": [400, 400],
+    "n_classes": 13,
+    "cam_target_layer": "features"
+  },
+  "DataLoader": {
+    "batch_size": 8,
+    "num_workers": 8
+  },
+  "optimizer": {
+    "learning_rate": 0.00015,
+    "betas": [0.8, 0.99],
+    "epsilon": 0.0015,
+    "weight_decay": 0.00015
+  },
+  "scheduler": {
+    "patience": 10,
+    "mode": "max"
+  },
+  "training": {
+    "epoch": 500
+  }
+}
