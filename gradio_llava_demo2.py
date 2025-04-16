@@ -23,21 +23,22 @@ import cv2
 SERVER_ADDRESS = "localhost"
 OLLAMA_API_URL = f"http://{SERVER_ADDRESS}:11434/api/generate"
 
-model2d_conf_path = "./conf/convnext-base_14-new.json"
+model2d_conf_path = "./conf/convnext-base_17_4.json"
 print(f'Loading 2D Model configurations "{model2d_conf_path}"')
 config_2d = Config.load_json(model2d_conf_path)
 config_2d.model.device = torch.device("cpu")
 model_2d = load_model(config_2d)
 target_layer_2d = "features"
-      
+  
 
-target_list = ['アサ','アズキ','アワ','イネ','エゴマ','オオムギ','カラスザンショウ','キビ','コクゾウムシ','コムギ','ダイズ','ツルマメ','ヒエ']
+target_list = ['アサ','アズキ','アワ','イネ','イノコヅチ','エゴマ','オオムギ','カラスザンショウ','キビ','コクゾウムシ','コムギ','ダイズ','ツルマメ','ヌスビトハギ','ヒエ','ヤブジラミ','ヤブツルアズキ']
 # target_list_gondo = ['アワ','イネ','エゴマ','カラスザンショウ','コクゾウムシ','コムギ']
 
 name_dic = {'アサ':'Hemp seed',
     'アズキ':'Adzuki bean seed',
     'アワ':'Foxtail millet seed',
     'イネ':'Rice seed',
+    'イノコヅチ':"Pig's knee seed",
     'エゴマ':'Perilla seed',
     'オオムギ':'Barley seed',
     'カラスザンショウ':'Japanese Prickly-ash',
@@ -46,7 +47,10 @@ name_dic = {'アサ':'Hemp seed',
     'コムギ':'Wheat seed',
     'ダイズ':'Soybean seed',
     'ツルマメ':'Glycine soja seed',
-    'ヒエ':'Barnyard millet seed'
+    'ヌスビトハギ':'Beggar lice seed',
+    'ヒエ':'Barnyard millet seed',
+    'ヤブジラミ':'Torilis japonica seed',
+    'ヤブツルアズキ':'Vigna angularis var. nipponensis seed'
     }
     
 
@@ -221,7 +225,8 @@ def ask_llava(image1, image2, class_output):
         # "prompt": f"Image 1 is an X-ray image, with the target object located in the center. The classification model estimated that this central object is {class_name}. \n\nImage 2 is a heat map highlighting the areas the classification model focused on when identifying objects in image 1. \n\nYour task is to describe the features from these images that may have influenced the classification of the first image as a {class_name}.",
 
     payload = {
-        "model": "llava:7b",
+        # "model": "llava:7b",
+        "model": "llava-ov-7b-ov",
         "prompt": f"Image 1 is an X-ray image, where the target object is located in the center and is surrounded by clay. The image classification model has predicted that the central object is classified as {class_name}. \n\n Image 2 is a heatmap highlighting the areas that the image classification model focused on when identifying the object in Image 1. \n\nYour task is to describe the features in these images that may have influenced the image classification model's decision to classify Image 1 as {class_name}.",
         "images": encoded_images
     }
@@ -238,10 +243,29 @@ def ask_llava(image1, image2, class_output):
     except Exception as e:
         return f"エラーが発生しました: {str(e)}"
 
+def translate_to_japanese(english_text):
+    if not english_text:
+        raise gr.Error("Explainボタンを押してください")
+
+    payload = {
+        "model": "aya-expanse",
+        "prompt": f"Translate the following English text to Japanese:\n\n{english_text}"
+    }
+
+    try:
+        response = requests.post(OLLAMA_API_URL, json=payload, stream=True)
+        japanese_output = ""
+        for line in response.iter_lines():
+            if line:
+                data = json.loads(line.decode("utf-8"))
+                japanese_output += data.get("response", "")
+        return japanese_output
+    except Exception as e:
+        return f"翻訳中にエラーが発生しました: {str(e)}"
 
 
 def clear_results():
-    return None,"",None,""
+    return None,"",None,"",""
 
 
 with gr.Blocks() as demo:
@@ -254,14 +278,17 @@ with gr.Blocks() as demo:
                 classifier_input = gr.Image(height=355,width=1000)
                 predict_button = gr.Button("Predict")   
                 heatmap = gr.Button("Heatmap")                 
-                explain_button=gr.Button("Explain")        
+                explain_button=gr.Button("Explain")  
+                translate_button=gr.Button("Translate")
                 clear_button=gr.Button("Clear")                          
             with gr.Column():                    
                 classifier_output = gr.Label(num_top_classes=config_2d.model.n_classes)      
+                # classifier_output = gr.JSON(label="分類結果")
                 marged_heatmap_image = gr.Image(height=355,width=1000)
                 filtered_image = gr.Image(visible=False)
                 heatmap_image = gr.Image(visible=False)
                 explanation = gr.Textbox(label="説明")
+                translation = gr.Textbox(label="翻訳")
             
             heatmap.click(
                 fn=generate_heatmap,
@@ -278,7 +305,7 @@ with gr.Blocks() as demo:
             clear_button.click(
                 fn=clear_results,
                 inputs=None,
-                outputs=[classifier_input,classifier_output,marged_heatmap_image,explanation]
+                outputs=[classifier_input,classifier_output,marged_heatmap_image,explanation,translation]
             )
 
             explain_button.click(
@@ -287,8 +314,15 @@ with gr.Blocks() as demo:
                 outputs=explanation
             )
 
+            translate_button.click(
+                fn=translate_to_japanese,
+                inputs=explanation,
+                outputs=translation
+            )
+
 # 実行
 if __name__ == "__main__":
     demo.launch()
+    # demo.launch(share=True)
 
 

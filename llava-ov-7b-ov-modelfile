@@ -1,0 +1,1 @@
+FROM ./llava-ov-7b-ov.gguf

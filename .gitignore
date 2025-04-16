@@ -3,11 +3,14 @@
 # lib/
 *notupdate*
 *.python-version
-*/models
+*models
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+llava-ov-0.5b-ov/
+llava-ov-7b-ov/
+llama.cpp
 
 # C extensions
 *.so
